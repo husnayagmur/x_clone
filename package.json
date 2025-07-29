@@ -10,9 +10,19 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native/new-app-screen": "0.80.2",
+    "@react-navigation/native": "^7.1.16",
+    "@reduxjs/toolkit": "^2.8.2",
+    "axios": "^1.11.0",
+    "nativewind": "^2.0.11",
+    "postcss": "^8.4.23",
     "react": "19.1.0",
     "react-native": "0.80.2",
-    "@react-native/new-app-screen": "0.80.2"
+    "react-native-dotenv": "^3.4.11",
+    "react-native-vector-icons": "^10.3.0",
+    "react-redux": "^9.2.0",
+    "tailwindcss": "^3.3.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../../models/user/UserModel');
+const Comment =require('../../models/comments/Comment');
 const Tweet = require('../../models/tweet/Tweet');
 const { protect } = require('../../middlewares/AuthMiddlewares');
 const fs = require('fs');
@@ -21,30 +22,35 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// ✅ Kullanıcı profili (Kullanıcı bilgilerini döndürür)
 router.get('/:id/profile', async (req, res) => {
   try {
-    // Kullanıcıyı ID'sine göre bul
     const user = await User.findById(req.params.id)
-      .select('username email bio avatar followers following'); // sadece gerekli alanları al
+      .select('username email bio avatar followers following');
 
     if (!user) {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
     }
 
-    // Kullanıcının tweet sayısını hesapla
     const tweetCount = await Tweet.countDocuments({ author: user._id });
 
-    // Kullanıcının tweet'lerini al
-    const tweets = await Tweet.find({ author: user._id })
-      .sort({ createdAt: -1 }) // En yeni tweet'leri önce getirecek
-      .limit(5);  // Örnek: son 5 tweet'i al
+    let tweets = await Tweet.find({ author: user._id })
+      .sort({ createdAt: -1 })
+      .limit(5);
 
-    // Takipçi ve takip edilen kullanıcıları al (sadece gerekli alanlar)
+    // ✅ Her tweet'e yorum sayısını ekle
+    tweets = await Promise.all(
+      tweets.map(async (tweet) => {
+        const commentCount = await Comment.countDocuments({ tweet: tweet._id });
+        return {
+          ...tweet.toObject(),
+          commentCount,
+        };
+      })
+    );
+
     const followers = await User.find({ _id: { $in: user.followers } }).select('username avatar');
     const following = await User.find({ _id: { $in: user.following } }).select('username avatar');
 
-    // Kullanıcıyı döndür
     res.status(200).json({
       user,
       tweetCount,
@@ -52,13 +58,12 @@ router.get('/:id/profile', async (req, res) => {
       followerCount: user.followers.length,
       followingCount: user.following.length,
       followers,
-      following
+      following,
     });
   } catch (err) {
     res.status(500).json({ message: 'Sunucu hatası', error: err.message });
   }
 });
-
 // ✅ Takip et
 router.post('/:id/follow', protect, async (req, res) => {
   try {

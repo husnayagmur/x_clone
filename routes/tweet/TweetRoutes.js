@@ -24,6 +24,43 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
+// /routes/tweetRoutes.js
+
+router.get('/feed', protect, async (req, res) => {
+  try {
+    const user = req.user;
+    const userIdsToFetch = [...user.following, user._id];
+
+    const tweets = await Tweet.find({ author: { $in: userIdsToFetch } })
+      .populate('author', 'username avatar')
+      .populate('comments') // yorumları çekiyoruz
+      .sort({ createdAt: -1 });
+
+    const enrichedTweets = tweets.map(tweet => {
+      const likedByUser = tweet.likes.includes(user._id);
+      const retweetedByUser = tweet.retweets.includes(user._id);
+
+      return {
+        _id: tweet._id,
+        content: tweet.content,
+        author: tweet.author,
+        createdAt: tweet.createdAt,
+        likeCount: tweet.likes.length,
+        retweetCount: tweet.retweets.length,
+        commentCount: tweet.comments.length,
+        likedByUser,
+        retweetedByUser,
+      };
+    });
+
+    res.status(200).json(enrichedTweets);
+  } catch (err) {
+    res.status(500).json({ message: 'Sunucu hatası', error: err.message });
+  }
+});
+
+
+
 // ✅ Tüm tweet’leri getir (public)
 router.get('/', async (req, res) => {
   try {
@@ -108,6 +145,22 @@ router.get('/:id/retweet-count', async (req, res) => {
     res.status(500).json({ message: 'Sunucu hatası', error: err.message });
   }
 });
+
+// ✅ Belirli bir kullanıcının tweetlerini getir
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const tweets = await Tweet.find({ author: userId })
+      .populate('author', 'username avatar')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(tweets);
+  } catch (err) {
+    res.status(500).json({ message: 'Sunucu hatası', error: err.message });
+  }
+});
+
 
 
 module.exports = router;

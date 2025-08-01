@@ -8,17 +8,24 @@ const fs = require('fs');
 const multer = require('multer');
 const path = require('path');
 
-// Multer storage ayarları
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/profile');  // uploads/profile klasörü olmalı
+    cb(null, 'uploads/profile');  // Yükleme klasörü
   },
   filename: function (req, file, cb) {
-    // Dosya adı: userId + zaman + uzantı
-    const ext = path.extname(file.originalname);
-    cb(null, req.body.userId + '-' + Date.now() + ext);
+    const ext = path.extname(file.originalname);  // Dosya uzantısını al
+
+    // `userId`'yi `req.body.userId` yerine `req.user._id` ile al
+    const userId = req.user._id;  // `req.user._id` genellikle kullanıcı bilgilerini taşır
+
+    if (!userId) {
+      return cb(new Error('Kullanıcı kimliği bulunamadı'), false);  // Eğer userId yoksa hata döndür
+    }
+
+    cb(null, `${userId}-${Date.now()}${ext}`);  // Dosya adı: userId + zaman + uzantı
   }
 });
+
 
 const upload = multer({ storage });
 
@@ -153,7 +160,7 @@ router.put('/:id/profile', protect, upload.single('avatar'), async (req, res) =>
       }
 
       // Yeni avatar'ı güncelle
-      user.avatar = req.file.path;
+      user.avatar = `/uploads/profile/${req.file.filename}`;
     }
 
     // Kullanıcı bilgilerini güncelle
@@ -165,8 +172,7 @@ router.put('/:id/profile', protect, upload.single('avatar'), async (req, res) =>
 
     res.status(200).json({
       message: 'Profil başarıyla güncellendi',
-      user,
-      avatar: user.avatar  // Yüklenen avatar'ın yolu
+      user,  // Kullanıcı bilgileri (avatar da dahil) döndürülüyor
     });
   } catch (err) {
     res.status(500).json({ message: 'Sunucu hatası', error: err.message });

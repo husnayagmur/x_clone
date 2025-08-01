@@ -16,7 +16,11 @@ app.use(cors({
 app.use(express.json());
 
 // Statik dosyalar
-app.use('/uploads', express.static('uploads'));
+const path = require('path');
+
+// Statik dosyaları sunmak için Express.js ayarını yapın
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // ✅ Route'lar
 const authRoutes = require('./routes/auth/AuthRoutes');
